@@ -1,1 +1,1 @@
-# geog328_pnw_earthquakes_plate_boundaries
+# geog328_earthquakes_plate_boundaries
