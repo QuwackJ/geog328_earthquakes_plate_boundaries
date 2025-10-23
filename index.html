@@ -2,7 +2,7 @@
 <html lang="en-US">
 <head>
     <meta charset="utf-8">
-    <title>Earthquakes and Tectonic Plate Boundaries</title>
+    <title>PNW Earthquakes & Tectonic Plate Boundaries</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
 
     <!-- mapbox library for mapmaking below here: -->
@@ -69,7 +69,9 @@
         <!-- table of earthquakes -->
         <div id="side-panel">
 
-            <h2>Earthquake List</h2>
+            <h2>PNW Earthquakes & Tectonic Plate Boundaries</h2>
+            <p>This webmap shows earthquakes roughly within the Pacific Northwest (PNW) that have a magnitude greater than or equal to 1.5.</p>
+            <p>In addition to the earthquake locations, this webmap also shows tectonic plate boundaries.</p>
             <button>Sort by Magnitude</button>
 
             <!-- javascript uses these HTML selectors to change the webpage when something happens -->
@@ -94,7 +96,7 @@
         // creating the map object
         let map = new mapboxgl.Map({
             container: 'map',
-            style: 'mapbox://styles/quwack-jones/cmh2figue00f101smfg0s9c8i',
+            style: 'mapbox://styles/quwack-jones/cmh2figue00f101smfg0s9c8i', // CHANGE STYLE LATER
             zoom: 4,
             center: [-117.03, 44.9]
         });
@@ -120,11 +122,12 @@
             response = await fetch('assets/all_earthquakes_30_days.geojson');
             earthquakes = await response.json();
 
-            // filter for earthquakes within PNW bounds
+            // filter for earthquakes within PNW bounds AND magnitude >= 1.5
             const pnwEarthquakes = earthquakes.features.filter(f => {
                 const [lon, lat] = f.geometry.coordinates;
                 return (lat >= boundsPNW.minLat && lat <= boundsPNW.maxLat &&
-                       lon >= boundsPNW.minLon && lon <= boundsPNW.maxLon);
+                       lon >= boundsPNW.minLon && lon <= boundsPNW.maxLon &&
+                       f.properties.mag >= 1.5);
             });
 
             // create earthquake table from geojson
@@ -194,10 +197,45 @@
         makeTableAndMap();
 
         // create button to sort earthquake table
+        let sortButton = document.getElementsByTagName('button')[0];
+        sortButton.addEventListener('click', sortTable);
 
-        // define function to sort earthquake table
+        // define function to sort earthquake table from largest to smallest magnitude
         function sortTable() {
-            // sorting logic
+            // create variables needed for sorting
+            let table, rows, switching, i, x, y, shouldSwitch;
+            table = document.getElementsByTagName('table')[0];
+            switching = true;
+
+            // continue until no switching is done
+            while (switching) {
+                // start by saying no switching is done
+                switching = false;
+                rows = table.rows;
+                
+                // loop through all table rows except header (first row)
+                for (i = 1; i < (rows.length - 1); i++) {
+                    // start by saying there should be no switching
+                    shouldSwitch = false;
+                    
+                    // compare elements from current row and next row (magnitude column)
+                    x = parseFloat(rows[i].getElementsByTagName("td")[1].innerHTML);
+                    y = parseFloat(rows[i + 1].getElementsByTagName("td")[1].innerHTML);
+
+                    // check if the two rows should switch place
+                    if (x < y) {
+                        // if yes, mark as a switch and break the loop
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+
+                // if a switch has been marked, make the switch and mark that it has been done
+                if (shouldSwitch) {
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+                }
+            }
         }
     </script>
 </body>
