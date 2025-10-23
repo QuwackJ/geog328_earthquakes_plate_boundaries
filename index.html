@@ -19,6 +19,7 @@
         body {
             margin: 0;
             padding: 0;
+            font-family: sans-serif;
         }
 
         #container {
@@ -72,12 +73,12 @@
             <button>Sort by Magnitude</button>
 
             <!-- javascript uses these HTML selectors to change the webpage when something happens -->
-            <!-- CHANGE TABLE COLUMNS -->
             <table>
                 <tr>
-                    <th>id</th>
-                    <th>magnitude</th>
-                    <th>timestamp</th>
+                    <th>ID</th>
+                    <th>Magnitude</th>
+                    <th>Location</th>
+                    <th>Date</th>
                 </tr>
             </table>
 
@@ -91,15 +92,103 @@
         mapboxgl.accessToken = 'pk.eyJ1IjoicXV3YWNrLWpvbmVzIiwiYSI6ImNtaDJkcjBzNzBiOGoyam9ib2Q4bGZkNTUifQ.tcdpJ47sN7uE8gEREB17MQ';
 
         // creating the map object
-        let map = new mapboxgl.Map({/* INSERT HERE */});
+        let map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/quwack-jones/cmh2figue00f101smfg0s9c8i',
+            zoom: 4,
+            center: [-117.03, 44.9]
+        });
         
         // creating function to make table and map
         async function makeTableAndMap() {
+            // creating bounds for earthquakes - only earthquakes within PNW (WA, OR, ID, BC Canada)
+            const boundsPNW = {
+                minLat: 40, // southern Oregon
+                maxLat: 55, // northern BC Canada
+                minLon: -135, // Pacific coast offshore BC
+                maxLon: -110 // eastern Idaho
+            }
+
             // establish variables for data sources
+            let response, tectonicPlates, earthquakes, table;
+
+            // load tectonic plate boundary geojson data
+            response = await fetch('assets/all_tectonic_boundaries.geojson');
+            tectonicPlates = await response.json();
+
+            // load earthquake geojson data
+            response = await fetch('assets/all_earthquakes_30_days.geojson');
+            earthquakes = await response.json();
+
+            // filter for earthquakes within PNW bounds
+            const pnwEarthquakes = earthquakes.features.filter(f => {
+                const [lon, lat] = f.geometry.coordinates;
+                return (lat >= boundsPNW.minLat && lat <= boundsPNW.maxLat &&
+                       lon >= boundsPNW.minLon && lon <= boundsPNW.maxLon);
+            });
 
             // create earthquake table from geojson
+            table = document.getElementsByTagName('table')[0];
+            let row, cell1, cell2, cell3, cell4;
+            for (let i = 0; i < pnwEarthquakes.length; i++) {
+                // getting date from earthquake time property
+                const date = new Date(pnwEarthquakes[i].properties.time).toLocaleDateString('en-US');
+
+                // create empty <tr> element and add it to 1st position of table
+                row = table.insertRow(-1);
+                cell1 = row.insertCell(0);
+                cell2 = row.insertCell(1);
+                cell3 = row.insertCell(2);
+                cell4 = row.insertCell(3);
+
+                // add earthquake data to each cell
+                cell1.innerHTML = pnwEarthquakes[i].id;
+                cell2.innerHTML = pnwEarthquakes[i].properties.mag;
+                cell3.innerHTML = pnwEarthquakes[i].properties.place;
+                cell4.innerHTML = date;
+            }
 
             // load data to map
+            map.on('load', function loadingData() {
+                // add tectonic plate boundary data source and layer
+                map.addSource('tectonicPlates', {
+                    type: 'geojson',
+                    data: tectonicPlates
+                });
+
+                map.addLayer({
+                    'id': 'tectonicPlatesLayer',
+                    'type': 'line',
+                    'source': 'tectonicPlates',
+                    'layout': {},
+                    'paint': {
+                        'line-color': '#FF5733',
+                        'line-width': 2
+                    }
+                });
+
+                // add earthquake data source and layer
+                map.addSource('pnwEarthquakes', {
+                    type: 'geojson',
+                    data: {
+                        type: "FeatureCollection",
+                        features: pnwEarthquakes
+                    }
+                });
+
+                map.addLayer({
+                    'id': 'pnwEarthquakesLayer',
+                    'type': 'circle',
+                    'source': 'pnwEarthquakes',
+                    'paint': {
+                        // basic style for earthquake circles - CHANGE LATER
+                        'circle-radius': 8,
+                        'circle-stroke-width': 2,
+                        'circle-color': 'red',
+                        'circle-stroke-color': 'white'
+                    }
+                });
+            });
         }
 
         makeTableAndMap();
