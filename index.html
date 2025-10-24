@@ -235,6 +235,23 @@
                         'circle-stroke-color': 'white'
                     }
                 });
+
+                // popup when clicking on earthquake circle
+                map.on('click', 'pnwEarthquakesLayer', function (e) {
+                    const feature = e.features[0];
+                    const props = feature.properties;
+                    const coords = feature.geometry.coordinates.slice();
+
+                    const popupContent = `
+                        <strong>Location:</strong> ${props.place}<br>
+                        <strong>Magnitude:</strong> ${props.mag}<br>
+                    `;
+
+                    new mapboxgl.Popup()
+                        .setLngLat([coords[0], coords[1]])
+                        .setHTML(popupContent)
+                        .addTo(map);
+                });
             });
         }
 
