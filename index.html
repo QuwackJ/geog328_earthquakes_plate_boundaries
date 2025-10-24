@@ -29,14 +29,34 @@
             align-items: stretch;
         }
 
-        /* using flex display to responsively determine the size of side-panel and map */
-        #side-panel {
-            flex-basis: 570px;
-            overflow-y: scroll;
+        /* map covers the full browser screen */
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            /* flex-grow: 1; */
         }
 
-        #map {
-            flex-grow: 1;
+        /* using flex display to responsively determine the size of side-panel and map */
+        #side-panel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 550px;
+            height: 100vh;
+            background: white;
+            overflow-y: auto;
+            z-index: 2;
+            padding: 24px 16px 16px 16px;
+            /* flex-basis: 570px;
+            overflow-y: scroll; */
+        }
+
+        h2 {
+            margin-top: 0;
         }
 
         button {
@@ -54,12 +74,18 @@
         th,
         td {
             text-align: left;
-            padding: 16px;
+            padding: 12px;
         }
 
         /* makes sure even rows in the table are slightly grayer than odd rows; creates zebra-striped table */
         tr:nth-child(even) {
             background-color: #f2f2f2;
+        }
+
+        @media (max-width: 1023px) {
+            #side-panel {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -98,7 +124,7 @@
             container: 'map',
             style: 'mapbox://styles/quwack-jones/cmh2figue00f101smfg0s9c8i',
             zoom: 4,
-            center: [-117.03, 44.9]
+            center: [-117.03, 44.9] // CHANGE LATER
         });
         
         // creating function to make table and map
