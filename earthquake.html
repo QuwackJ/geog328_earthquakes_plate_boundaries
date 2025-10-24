@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <meta charset="utf-8">
+    <title>Earthquake List</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+
+    <!-- mapbox library for mapmaking below here: -->
+    <!-- Including the Mapbox GL CSS file -->
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.css" rel="stylesheet">
+
+    <!-- Including the Mapbox GL JS file -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.js"></script>
+
+    <style>
+        /* CSS styles for the layout and components */
+        /* body and container make sure main viewport of HTML page can occupy the full window */
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #container {
+            display: flex;
+            height: 100vh;
+            flex-direction: row;
+            align-items: stretch;
+        }
+
+        /* using flex display to responsively determine the size of side-panel and map */
+        #side-panel {
+            flex-basis: 500px;
+            overflow-y: scroll;
+        }
+
+        #map {
+            flex-grow: 1;
+        }
+
+        button {
+            margin-bottom: 10px;
+        }
+
+        /* styling the table */
+        table {
+            border-collapse: collapse;
+            border-spacing: 0;
+            width: 100%;
+            border: 1px solid #ddd;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 16px;
+        }
+
+        /* makes sure even rows in the table are slightly grayer than odd rows; creates zebra-striped table */
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+
+<body>
+    <main id="container">
+        <!-- table of earthquakes -->
+        <div id="side-panel">
+
+            <h2>Earthquake List</h2>
+            <button>Sort by Magnitude</button>
+
+            <!-- javascript uses these HTML selectors to change the webpage when something happens -->
+            <table>
+                <tr>
+                    <th>id</th>
+                    <th>magnitude</th>
+                    <th>timestamp</th>
+                </tr>
+            </table>
+
+        </div>
+        <!-- actual map of earthquakes -->
+        <div id="map"></div>
+
+    </main>
+
+    <!-- loads data and implements map visualization -->
+    <script>
+        // Define the Mapbox access token
+        // get mapbox token from creating an account at mapbox.com; can't see map without personal token
+        mapboxgl.accessToken =
+            'pk.eyJ1Ijoiemhhb2JvIiwiYSI6ImNqaW85NzNrdDA3OXczcHQ5aTZvYmtjc2gifQ.ummEQxsRIweCIdv9CRRzOw';
+
+        // Create the map object
+        // map is placed to the center of Japan
+        let map = new mapboxgl.Map({
+            container: 'map', // container ID
+            style: 'mapbox://styles/mapbox/satellite-v9', // style URL
+            zoom: 5.5, // starting zoom
+            center: [138, 38] // starting center
+        });
+
+        // technique that enables program to start a long-running task and still be responsive to other events
+        // async function returns a promise to get data from geojson files; await waits for promise to finish and gets value(s) of geojson files
+        // table, map, and sorting are done inside async because geojson data is needed for those tasks
+        async function geojsonFetch() {
+            // establish variables to hold fetched data; creates earthquakes and japan geojson objects
+            let response, earthquakes, japan, table;
+            response = await fetch('assets/earthquakes.geojson'); // return JSON response body to response object
+            earthquakes = await response.json();
+            response = await fetch('assets/japan.json'); // return JSON response body to response object
+            japan = await response.json();
+
+            // create earthquake list from geojson data
+            table = document.getElementsByTagName("table")[0];
+            let row, cell1, cell2, cell3;
+            for (let i = 0; i < earthquakes.features.length; i++) {
+                // Create an empty <tr> element and add it to the 1st position of the table:
+                row = table.insertRow(-1);
+                cell1 = row.insertCell(0);
+                cell2 = row.insertCell(1);
+                cell3 = row.insertCell(2);
+                cell1.innerHTML = earthquakes.features[i].properties.id;
+                cell2.innerHTML = earthquakes.features[i].properties.mag;
+                cell3.innerHTML = new Date(earthquakes.features[i].properties.time).toLocaleDateString(
+                    "en-US");
+            }
+
+
+            // load data to the map as new layers and table on the side.
+            // each geojson data needs to be added to the map as a new data source and then as a new layer
+            map.on('load', function loadingData() {
+
+                map.addSource('earthquakes', {
+                    type: 'geojson',
+                    data: earthquakes
+                });
+
+                map.addLayer({
+                    'id': 'earthquakes-layer',
+                    'type': 'circle',
+                    'source': 'earthquakes',
+                    'paint': { // defines the style of the layer
+                        'circle-radius': 8,
+                        'circle-stroke-width': 2,
+                        'circle-color': 'red',
+                        'circle-stroke-color': 'white'
+                    }
+                });
+
+
+                map.addSource('japan', {
+                    type: 'geojson',
+                    data: japan
+                });
+
+                map.addLayer({
+                    'id': 'japan-layer',
+                    'type': 'fill',
+                    'source': 'japan',
+                    'paint': {
+                        'fill-color': '#0080ff', // blue color fill
+                        'fill-opacity': 0.5
+                    }
+                });
+
+            });
+
+        }
+
+        geojsonFetch();
+
+        // creating a button to sort the earthquake table by magnitude
+        let btn = document.getElementsByTagName("button")[0];
+
+        btn.addEventListener('click', sortTable);
+
+        // define the function to sort table
+        // compares the two adjacent values and switches them if they are in the wrong order
+        function sortTable(e) {
+            let table, rows, switching, i, x, y, shouldSwitch;
+            table = document.getElementsByTagName("table")[0];
+            switching = true;
+            /*Make a loop that will continue until
+            no switching has been done:*/
+            while (switching) {
+                //start by saying: no switching is done:
+                switching = false;
+                rows = table.rows;
+                /*Loop through all table rows (except the
+                first, which contains table headers):*/
+                for (i = 1; i < (rows.length - 1); i++) {
+                    //start by saying there should be no switching:
+                    shouldSwitch = false;
+                    /*Get the two elements you want to compare,
+                    one from current row and one from the next:*/
+                    x = parseFloat(rows[i].getElementsByTagName("td")[1].innerHTML);
+                    y = parseFloat(rows[i + 1].getElementsByTagName("td")[1].innerHTML);
+                    //check if the two rows should switch place:
+                    if (x < y) {
+                        //if so, mark as a switch and break the loop:
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+                if (shouldSwitch) {
+                    /*If a switch has been marked, make the switch
+                    and mark that a switch has been done:*/
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+                }
+            }
+        }
+    </script>
+
+</body>
+
+</html>
