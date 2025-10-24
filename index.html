@@ -37,7 +37,6 @@
             width: 100vw;
             height: 100vh;
             z-index: 1;
-            /* flex-grow: 1; */
         }
 
         /* using flex display to responsively determine the size of side-panel and map */
@@ -51,8 +50,6 @@
             overflow-y: auto;
             z-index: 2;
             padding: 24px 16px 16px 16px;
-            /* flex-basis: 570px;
-            overflow-y: scroll; */
         }
 
         h2 {
@@ -124,7 +121,7 @@
             container: 'map',
             style: 'mapbox://styles/quwack-jones/cmh2figue00f101smfg0s9c8i',
             zoom: 4,
-            center: [-117.03, 44.9] // CHANGE LATER
+            center: [-108.88, 44.09]
         });
         
         // creating function to make table and map
@@ -191,7 +188,7 @@
                     'source': 'tectonicPlates',
                     'layout': {},
                     'paint': {
-                        'line-color': '#FF5733',
+                        'line-color': 'black',
                         'line-width': 2
                     }
                 });
@@ -210,10 +207,31 @@
                     'type': 'circle',
                     'source': 'pnwEarthquakes',
                     'paint': {
-                        // basic style for earthquake circles - CHANGE LATER
-                        'circle-radius': 8,
-                        'circle-stroke-width': 2,
-                        'circle-color': 'red',
+                        // circle radius increases with magnitude
+                        'circle-radius': [
+                            'interpolate',
+                            ['linear'],
+                            ['get', 'mag'],
+                            1.5, 4,
+                            3, 8,
+                            5, 16,
+                            7, 24
+                        ],
+                        // circle color transparency increases with magnitude
+                        'circle-color': [
+                            'rgba',
+                            240, 0, 255,
+                            [
+                                'interpolate',
+                                ['linear'],
+                                ['get', 'mag'],
+                                1.5, 0.3,
+                                3, 0.5,
+                                5, 0.7,
+                                7, 1.0
+                            ]
+                        ],
+                        'circle-stroke-width': 1.5,
                         'circle-stroke-color': 'white'
                     }
                 });
